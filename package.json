@@ -1,0 +1,23 @@
+{
+  "name": "ec2-train-model",
+  "version": "1.0.0",
+  "description": "Automate the setup and training for a machine learning model",
+  "main": "launch.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Marhill-Labs/ec2-train-model.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Marhill-Labs/ec2-train-model/issues"
+  },
+  "homepage": "https://github.com/Marhill-Labs/ec2-train-model#readme",
+  "dependencies": {
+    "aws-sdk": "^2.348.0",
+    "node-ssh": "^5.1.2"
+  }
+}
