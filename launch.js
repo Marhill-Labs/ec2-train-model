@@ -108,14 +108,11 @@ async function shellCommands(public_dns) {
     console.log(install_nvm.stdout);
     console.log(install_nvm.stderr);
 
-    const install_node = await ssh.execCommand('' +
+    await ssh.exec('' +
       'export NVM_DIR="$HOME/.nvm" && ' +
       '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && ' +
-      'nvm install 11 && node --version' + CARD_SET);
-    console.log(install_node.stdout);
-    console.log(install_node.stderr);
-
-    await ssh.exec(`node divide_dirs.js`, [CARD_SET], {
+      'nvm install 11 && npm install && ' +
+      'node --version && node divide_dirs.js', [CARD_SET], {
       cwd: `/home/ubuntu/${REPO}`,
       onStdout(chunk) {
         console.log('stdoutChunk', chunk.toString('utf8'))
