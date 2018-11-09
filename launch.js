@@ -103,14 +103,20 @@ async function shellCommands(public_dns) {
     console.log('Config copied.');
     console.log('Running...');
 
-    const install_nvm = await ssh.execCommand(`wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash`);
-    console.log(JSON.stringify(install_nvm));
+    const install_nvm = await ssh.execCommand('' +
+      'wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash');
+    console.log(install_nvm.stdout);
+    console.log(install_nvm.stderr);
 
-    const use_node_11 = await ssh.execCommand("export NVM_DIR=\"${XDG_CONFIG_HOME/:-$HOME/.}nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 11 && node --version");
-    console.log(JSON.stringify(use_node_11));
+    const install_node = await ssh.execCommand('' +
+      'export NVM_DIR="$HOME/.nvm" && ' +
+      '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && ' +
+      'nvm install 11 && node --version');
+    console.log(install_node.stdout);
+    console.log(install_node.stderr);
 
-    // const version = await ssh.execCommand(`nvm use 11 && node --version`);
-    // console.log(JSON.stringify(version));
+    // TODO script to download cards from amazon bucket and distribute the to folders
+    // TODO take in parameters: card_set && ???
 
     // await ssh.exec(`sudo apt-get update && sudo apt-get install -y python3-pip &&
     //   pip3 install boto3 Augmentor Pillow numpy &&

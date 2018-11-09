@@ -18,6 +18,8 @@
   "homepage": "https://github.com/Marhill-Labs/ec2-train-model#readme",
   "dependencies": {
     "aws-sdk": "^2.348.0",
-    "node-ssh": "^5.1.2"
+    "bluebird": "^3.5.3",
+    "node-ssh": "^5.1.2",
+    "rimraf": "^2.6.2"
   }
 }
