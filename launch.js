@@ -2,17 +2,17 @@
 const node_ssh = require('node-ssh');
 const ssh = new node_ssh();
 
-// if(!process.argv[2] || !process.argv[3]) {
-//   console.log('Missing arguments for SAMPLES and/or CARD_SET');
-//   console.log('Example: node auto-ec2.js 100 3ed');
-//   process.exit();
-// }
-//
-// const SAMPLES = process.argv[2];
-// const CARD_SET = process.argv[3];
-//
-// console.log(`Initialized with ${SAMPLES} SAMPLEs, and ${CARD_SET} CARD_SET.`);
+const REPO = 'ec2-train-model';
 
+if(!process.argv[2]) {
+  console.log('Missing arguments for SAMPLES and/or CARD_SET');
+  console.log('Example: node auto-ec2.js 100 3ed');
+  process.exit();
+}
+
+const CARD_SET = process.argv[2];
+
+console.log(`Initialized with ${CARD_SET} CARD_SET.`);
 
 const AWS = require('aws-sdk');
 AWS.config.loadFromPath('./config.json');
@@ -94,11 +94,11 @@ async function shellCommands(public_dns) {
       privateKey: '/home/daniel/Desktop/keys_credentials/key_acs.pem'
     });
 
-    const result = await ssh.execCommand(`git clone https://github.com/Marhill-Labs/ec2-image-augmentation-pipeline.git`);
+    const result = await ssh.execCommand(`git clone https://github.com/Marhill-Labs/${REPO}.git`);
 
     console.log(JSON.stringify(result));
 
-    await ssh.putFile('config.json', '/home/ubuntu/ec2-image-augmentation-pipeline/config.json');
+    await ssh.putFile('config.json', `/home/ubuntu/${REPO}/config.json`);
 
     console.log('Config copied.');
     console.log('Running...');
@@ -111,12 +111,20 @@ async function shellCommands(public_dns) {
     const install_node = await ssh.execCommand('' +
       'export NVM_DIR="$HOME/.nvm" && ' +
       '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && ' +
-      'nvm install 11 && node --version');
+      'nvm install 11 && node --version' + CARD_SET);
     console.log(install_node.stdout);
     console.log(install_node.stderr);
 
-    // TODO script to download cards from amazon bucket and distribute the to folders
-    // TODO take in parameters: card_set && ???
+    await ssh.exec(`node divide_dirs.js`, [CARD_SET], {
+      cwd: `/home/ubuntu/${REPO}`,
+      onStdout(chunk) {
+        console.log('stdoutChunk', chunk.toString('utf8'))
+      },
+      onStderr(chunk) {
+        console.log('stderrChunk', chunk.toString('utf8'))
+      }
+    });
+
 
     // await ssh.exec(`sudo apt-get update && sudo apt-get install -y python3-pip &&
     //   pip3 install boto3 Augmentor Pillow numpy &&
