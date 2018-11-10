@@ -61,7 +61,7 @@ async function main() {
   await attachVolume(instance_id, volume_id);
 
   await shellCommands(public_dns);
-  // await terminateInstance(params);
+  await terminateInstance(params);
 
   console.log('All Done!');
 }
