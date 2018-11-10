@@ -21,7 +21,7 @@ const ec2 = new AWS.EC2({apiVersion: '2016-11-15', region: 'us-west-2'});
 // AMIs are region-specific
 const instanceParams = {
   ImageId: 'ami-0bbe6b35405ecebdb',
-  InstanceType: 't3.medium',
+  InstanceType: 'c5.large',
   KeyName: 'key_acs',
   MinCount: 1,
   MaxCount: 1
@@ -122,18 +122,16 @@ async function shellCommands(public_dns) {
       }
     });
 
-
-    // await ssh.exec(`sudo apt-get update && sudo apt-get install -y python3-pip &&
-    //   pip3 install boto3 Augmentor Pillow numpy &&
-    //   python3 augmentor.py`, [SAMPLES, CARD_SET, 'upload'], {
-    //   cwd: '/home/ubuntu/ec2-image-augmentation-pipeline',
-    //   onStdout(chunk) {
-    //     console.log('stdoutChunk', chunk.toString('utf8'))
-    //   },
-    //   onStderr(chunk) {
-    //     console.log('stderrChunk', chunk.toString('utf8'))
-    //   }
-    // });
+    await ssh.exec(`sudo apt-get update && sudo apt-get install -y python3-pip &&
+      pip3 install keras && python3 model.py`, [CARD_SET], {
+      cwd: `/home/ubuntu/${REPO}`,
+      onStdout(chunk) {
+        console.log('stdoutChunk', chunk.toString('utf8'))
+      },
+      onStderr(chunk) {
+        console.log('stderrChunk', chunk.toString('utf8'))
+      }
+    });
 
     console.log("Finished");
 
