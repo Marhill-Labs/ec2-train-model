@@ -6,8 +6,7 @@ from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Activati
 from keras import callbacks
 from keras.preprocessing.image import ImageDataGenerator
 from keras import backend as K
-# K.tensorflow_backend._get_available_gpus()
-# K.clear_session()
+K.tensorflow_backend._get_available_gpus()
 
 default_card_set = "3ed"
 
@@ -24,8 +23,6 @@ for root, dirs, files in os.walk(card_set + "_sorted"):
     total += len(files)
     dir_total += len(dirs)
 
-print(dir_total)
-
 img_width, img_height = 400, 400
 
 nb_train_samples = total
@@ -37,7 +34,7 @@ nb_filters2 = 64
 conv1_size = 3
 conv2_size = 3
 pool_size = 2
-classes_num = 4
+classes_num = dir_total
 lr = 0.0003
 
 

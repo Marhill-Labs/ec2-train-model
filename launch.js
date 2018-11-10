@@ -21,7 +21,7 @@ const ec2 = new AWS.EC2({apiVersion: '2016-11-15', region: 'us-west-2'});
 // AMIs are region-specific
 const instanceParams = {
   ImageId: 'ami-0bbe6b35405ecebdb',
-  InstanceType: 'c5.large',
+  InstanceType: 'c5.xlarge',
   KeyName: 'key_acs',
   MinCount: 1,
   MaxCount: 1
