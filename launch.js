@@ -4,7 +4,7 @@ const ssh = new node_ssh();
 
 const REPO = 'ec2-train-model';
 
-if(!process.argv[2]) {
+if (!process.argv[2]) {
   console.log('Missing arguments for SAMPLES and/or CARD_SET');
   console.log('Example: node auto-ec2.js 100 3ed');
   process.exit();
@@ -56,7 +56,6 @@ async function main() {
 }
 
 
-
 async function waitForInstance(params) {
   return new Promise((resolve, reject) => {
     ec2.waitFor('instanceStatusOk', params, function (err, data) {
@@ -72,7 +71,7 @@ async function waitForInstance(params) {
 
 async function describeInstance(params) {
   return new Promise((resolve, reject) => {
-    ec2.describeInstances(params, function(err, data) {
+    ec2.describeInstances(params, function (err, data) {
       if (err) {
         console.log(err);
         reject(err);
@@ -86,28 +85,27 @@ async function describeInstance(params) {
 
 async function shellCommands(public_dns) {
 
+  await ssh.connect({
+    host: public_dns,
+    username: 'ubuntu',
+    privateKey: '/home/daniel/Desktop/keys_credentials/key_acs.pem'
+  });
+
+  const result = await ssh.execCommand(`git clone https://github.com/Marhill-Labs/${REPO}.git`);
+
+  console.log(JSON.stringify(result));
+
+  await ssh.putFile('config.json', `/home/ubuntu/${REPO}/config.json`);
+
+  console.log('Config copied.');
+  console.log('Running...');
+
+  const install_nvm = await ssh.execCommand('' +
+    'wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash');
+  console.log(install_nvm.stdout);
+  console.log(install_nvm.stderr);
+
   try {
-
-    await ssh.connect({
-      host: public_dns,
-      username: 'ubuntu',
-      privateKey: '/home/daniel/Desktop/keys_credentials/key_acs.pem'
-    });
-
-    const result = await ssh.execCommand(`git clone https://github.com/Marhill-Labs/${REPO}.git`);
-
-    console.log(JSON.stringify(result));
-
-    await ssh.putFile('config.json', `/home/ubuntu/${REPO}/config.json`);
-
-    console.log('Config copied.');
-    console.log('Running...');
-
-    const install_nvm = await ssh.execCommand('' +
-      'wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash');
-    console.log(install_nvm.stdout);
-    console.log(install_nvm.stderr);
-
     await ssh.exec('' +
       'export NVM_DIR="$HOME/.nvm" && ' +
       '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh" && ' +
@@ -121,9 +119,13 @@ async function shellCommands(public_dns) {
         console.log('stderrChunk', chunk.toString('utf8'))
       }
     });
+  } catch (e) {
+    // ignore
+  }
 
+  try {
     await ssh.exec(`sudo apt-get update && sudo apt-get install -y python3-pip &&
-      pip3 install keras && python3 model.py`, [CARD_SET], {
+      pip3 install keras && pip3 install tensorflow && pip3 install Pillow && python3 model.py`, [CARD_SET], {
       cwd: `/home/ubuntu/${REPO}`,
       onStdout(chunk) {
         console.log('stdoutChunk', chunk.toString('utf8'))
@@ -132,15 +134,13 @@ async function shellCommands(public_dns) {
         console.log('stderrChunk', chunk.toString('utf8'))
       }
     });
-
-    console.log("Finished");
-
-  } catch(e) {
-    // not sure why there is an error being thrown
-    // convert to standard ssh library
-  } finally {
-    ssh.dispose();
+  } catch (e) {
+    // ignore
   }
+
+  ssh.dispose();
+
+  console.log("Finished");
 
 
 }
@@ -148,8 +148,8 @@ async function shellCommands(public_dns) {
 
 async function terminateInstance(params) {
   return new Promise((resolve, reject) => {
-    ec2.terminateInstances(params, function(err, data) {
-      if (err){
+    ec2.terminateInstances(params, function (err, data) {
+      if (err) {
         console.log(err, err.stack);
         reject(err);
       } else {
