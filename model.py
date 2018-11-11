@@ -1,5 +1,7 @@
 import sys
 import os
+import json
+import boto3
 from keras import optimizers
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Activation

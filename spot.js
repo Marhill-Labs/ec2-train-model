@@ -366,7 +366,8 @@ async function shellCommands(public_dns) {
 
   try {
     await ssh.exec(`sudo apt-get update && source activate python3 && 
-      pip install keras && pip install tensorflow-gpu && pip install Pillow && python3 model.py`, [CARD_SET], {
+      pip install keras && pip install tensorflow-gpu && 
+      pip install Pillow && pip install boto3 && python3 model.py`, [CARD_SET], {
       cwd: `/mnt/${REPO}`,
       onStdout(chunk) {
         console.log('stdoutChunk', chunk.toString('utf8'))
