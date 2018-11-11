@@ -41,6 +41,38 @@ pool_size = 2
 classes_num = dir_total
 lr = 0.0003
 
+with open('config.json') as f:
+    credentials = json.load(f)
+
+s3 = boto3.resource('s3', aws_access_key_id=credentials["accessKeyId"], aws_secret_access_key=credentials["secretAccessKey"])
+
+class S3Wrap(object):
+    def __init__(self, s3_resource):
+        self.s3_resource = s3_resource
+
+    def upload(self, bucket, path_local, path_s3):
+        bucket = self.s3_resource.Bucket(bucket)
+        bucket.upload_file(path_local, path_s3)
+
+
+class S3Checkpoint(keras.callbacks.Callback, S3Wrap):
+    def __init__(self, s3_resource, bucket, path_local, path_s3):
+        self.bucket = bucket
+        self.path_local = path_local
+        self.path_s3 = path_s3
+        self.last_change = None
+
+        S3Wrap.__init__(self, s3_resource)
+
+    def on_epoch_end(self, *args):
+        epoch_nr, logs = args
+
+        if os.path.getmtime(self.path_local) != self.last_change:
+            self.upload(self.bucket, self.path_local, self.path_s3)
+            print('uploading model')
+            self.last_change = os.path.getmtime(self.path_local)
+        else:
+            print('model didn\'t improve - no upload')
 
 input_shape = (img_height, img_width, 3)
 
@@ -67,9 +99,21 @@ model.compile(loss='categorical_crossentropy',
               optimizer=optimizers.RMSprop(lr=lr),
               metrics=['accuracy'])
 
-filepath=card_set + "-{epoch:02d}-{val_acc:.2f}.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-callbacks_list = [checkpoint]
+filepath=card_set + "/" + card_set + "-{epoch:02d}-{val_acc:.2f}.hdf5"
+
+checkpoint = ModelCheckpoint(
+    filepath,
+    monitor='val_acc',
+    verbose=1,
+    save_best_only=True,
+    mode='max')
+s3_persist = S3Checkpoint(
+    s3_resource=s3,
+    bucket='model-' + card_set,
+    path_local=filepath,
+    path_s3=filepath)
+
+callbacks_list = [checkpoint, s3_persist]
 
 
 data_generator = ImageDataGenerator(rescale=1./255, validation_split=VALIDATION_SPLIT)
