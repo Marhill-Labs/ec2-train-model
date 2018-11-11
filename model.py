@@ -5,6 +5,7 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Activation
 from keras import callbacks
 from keras.preprocessing.image import ImageDataGenerator
+from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 K.tensorflow_backend._get_available_gpus()
 
@@ -16,6 +17,9 @@ if len(sys.argv) > 1:
 else:
     print("Default Card Set: ", default_card_set)
     card_set = default_card_set
+
+TRAINING_DIR = card_set + '_sorted'
+VALIDATION_SPLIT = 0.33
 
 total = 0
 dir_total = 0
@@ -63,20 +67,24 @@ model.compile(loss='categorical_crossentropy',
               optimizer=optimizers.RMSprop(lr=lr),
               metrics=['accuracy'])
 
+filepath=card_set + "-{epoch:02d}-{val_acc:.2f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+callbacks_list = [checkpoint]
 
-test_datagen = ImageDataGenerator(rescale=1./255)
 
-test_generator = test_datagen.flow_from_directory(
-        card_set + '_sorted',
-        target_size=(img_height, img_width),
-        batch_size=batch_size,
-        class_mode='categorical')
+data_generator = ImageDataGenerator(rescale=1./255, validation_split=VALIDATION_SPLIT)
+
+train_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(img_height, img_width), shuffle=True, seed=13,
+                                                     class_mode='categorical', batch_size=batch_size, subset="training")
+
+validation_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(img_height, img_width), shuffle=True, seed=13,
+                                                     class_mode='categorical', batch_size=batch_size, subset="validation")
 
 model.fit_generator(
-    test_generator,
-    steps_per_epoch=(nb_train_samples // batch_size),
-    epochs=epochs
+    train_generator,
+    steps_per_epoch=(nb_train_samples // batch_size) * (1.0 - VALIDATION_SPLIT),
+    epochs=epochs,
+    callbacks=callbacks_list,
+    validation_data=validation_generator,
+    validation_steps=(nb_train_samples // batch_size) * VALIDATION_SPLIT
 )
-
-model.save_weights(card_set + '_weights.h5')
-model.save(card_set + '_model.h5')
