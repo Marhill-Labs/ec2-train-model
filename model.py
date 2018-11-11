@@ -57,7 +57,7 @@ class S3Wrap(object):
         bucket.upload_file(path_local, path_s3)
 
 
-class S3Checkpoint(keras.callbacks.Callback, S3Wrap):
+class S3Checkpoint(callbacks.Callback, S3Wrap):
     def __init__(self, s3_resource, bucket, path_local, path_s3):
         self.bucket = bucket
         self.path_local = path_local
