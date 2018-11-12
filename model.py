@@ -2,16 +2,22 @@ import sys
 import os
 import json
 import boto3
+from botocore.exceptions import ClientError
 from keras import optimizers
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Activation
 from keras import callbacks
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
+
 from keras import backend as K
 K.tensorflow_backend._get_available_gpus()
 
 default_card_set = "3ed"
+
+if not os.path.exists(default_card_set):
+    os.makedirs(default_card_set)
 
 if len(sys.argv) > 1:
     print("Card Set: ", sys.argv[1])
@@ -32,7 +38,7 @@ for root, dirs, files in os.walk(card_set + "_sorted"):
 img_width, img_height = 400, 400
 
 nb_train_samples = total
-batch_size = 32
+batch_size = 8 # todo 32
 
 epochs = 200
 nb_filters1 = 64
@@ -48,60 +54,63 @@ with open('config.json') as f:
 
 s3 = boto3.resource('s3', aws_access_key_id=credentials["accessKeyId"], aws_secret_access_key=credentials["secretAccessKey"])
 
-class S3Wrap(object):
-    def __init__(self, s3_resource):
-        self.s3_resource = s3_resource
 
-    def upload(self, bucket, path_local, path_s3):
-        bucket = self.s3_resource.Bucket(bucket)
-        bucket.upload_file(path_local, path_s3)
-
-
-class S3Checkpoint(callbacks.Callback, S3Wrap):
-    def __init__(self, s3_resource, bucket, path_local, path_s3):
+class S3Checkpoint(callbacks.Callback):
+    def __init__(self, bucket, target_dir):
         self.bucket = bucket
-        self.path_local = path_local
-        self.path_s3 = path_s3
-        self.last_change = None
-
-        S3Wrap.__init__(self, s3_resource)
+        self.target_dir = target_dir
 
     def on_epoch_end(self, *args):
         epoch_nr, logs = args
 
-        if os.path.getmtime(self.path_local) != self.last_change:
-            self.upload(self.bucket, self.path_local, self.path_s3)
-            print('uploading model')
-            self.last_change = os.path.getmtime(self.path_local)
-        else:
-            print('model didn\'t improve - no upload')
+        if not os.path.isdir(self.target_dir):
+            raise ValueError('target_dir %r not found.' % self.target_dir)
+
+        try:
+            s3.create_bucket(Bucket=self.bucket, CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+        except ClientError:
+            pass
+
+        for filename in os.listdir(self.target_dir):
+            my_bucket = s3.Bucket(self.bucket)
+            match = False
+            for obj in my_bucket.objects.filter(Prefix=filename):
+                match = True
+            if match == False:
+                print('Uploading ' + filename + ' to Amazon S3 bucket ' + self.bucket)
+                # s3.Object(self.bucket, filename).put(Body=open(os.path.join(self.target_dir, filename), 'rb'))
 
 input_shape = (img_height, img_width, 3)
 
-model = Sequential()
-model.add(Conv2D(nb_filters1, (conv1_size, conv1_size), padding='same', input_shape=input_shape))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+# Check AWS if a model already exists
 
-model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+#
+# model = Sequential()
+# model.add(Conv2D(nb_filters1, (conv1_size, conv1_size), padding='same', input_shape=input_shape))
+# model.add(Activation("relu"))
+# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+#
+# model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+# model.add(Activation("relu"))
+# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+#
+# model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+# model.add(Activation("relu"))
+# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+#
+# model.add(Flatten())
+# model.add(Dense(256))
+# model.add(Activation("relu"))
+# model.add(Dropout(0.2))
+# model.add(Dense(classes_num, activation='softmax'))
+#
+# model.compile(loss='categorical_crossentropy',
+#               optimizer=optimizers.RMSprop(lr=lr),
+#               metrics=['accuracy'])
 
-model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+model = load_model("3ed/3ed-04-0.14-0.97.hdf5")
 
-model.add(Flatten())
-model.add(Dense(256))
-model.add(Activation("relu"))
-model.add(Dropout(0.2))
-model.add(Dense(classes_num, activation='softmax'))
-
-model.compile(loss='categorical_crossentropy',
-              optimizer=optimizers.RMSprop(lr=lr),
-              metrics=['accuracy'])
-
-filepath=card_set + "/" + card_set + "-{epoch:02d}-{val_acc:.2f}.hdf5"
+filepath=card_set + "/" + card_set + "-{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.hdf5"
 
 checkpoint = ModelCheckpoint(
     filepath,
@@ -110,10 +119,8 @@ checkpoint = ModelCheckpoint(
     save_best_only=True,
     mode='max')
 s3_persist = S3Checkpoint(
-    s3_resource=s3,
     bucket='model-' + card_set,
-    path_local=filepath,
-    path_s3=filepath)
+    target_dir=card_set)
 
 callbacks_list = [checkpoint, s3_persist]
 
