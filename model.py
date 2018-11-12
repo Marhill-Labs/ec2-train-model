@@ -83,32 +83,47 @@ class S3Checkpoint(callbacks.Callback):
 input_shape = (img_height, img_width, 3)
 
 # Check AWS if a model already exists
+bucket_files = []
+latest_val_acc = 0.0
+latest_file = ""
+my_bucket = s3.Bucket("model-" + card_set)
+for obj in my_bucket.objects.all():
+    print(obj)
+    bucket_files.append(obj.key)
+    split_files = obj.key.split('.hdf5')[0].split('-')
+    print(split_files[2])
+    if float(split_files[2]) > latest_val_acc:
+        latest_val_acc = float(split_files[2])
+        latest_file = obj.key
 
-#
-# model = Sequential()
-# model.add(Conv2D(nb_filters1, (conv1_size, conv1_size), padding='same', input_shape=input_shape))
-# model.add(Activation("relu"))
-# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
-#
-# model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-# model.add(Activation("relu"))
-# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
-#
-# model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-# model.add(Activation("relu"))
-# model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
-#
-# model.add(Flatten())
-# model.add(Dense(256))
-# model.add(Activation("relu"))
-# model.add(Dropout(0.2))
-# model.add(Dense(classes_num, activation='softmax'))
-#
-# model.compile(loss='categorical_crossentropy',
-#               optimizer=optimizers.RMSprop(lr=lr),
-#               metrics=['accuracy'])
+if latest_file != "":
+    print('has file')
+    # TODO download file from S3 bucket
+    model = load_model(latest_file)
+else:
+    model = Sequential()
+    model.add(Conv2D(nb_filters1, (conv1_size, conv1_size), padding='same', input_shape=input_shape))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
 
-model = load_model("3ed/3ed-04-0.14-0.97.hdf5")
+    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+
+    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+
+    model.add(Flatten())
+    model.add(Dense(256))
+    model.add(Activation("relu"))
+    model.add(Dropout(0.2))
+    model.add(Dense(classes_num, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+        optimizer=optimizers.RMSprop(lr=lr),
+        metrics=['accuracy'])
+
 
 filepath=card_set + "/" + card_set + "-{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.hdf5"
 
