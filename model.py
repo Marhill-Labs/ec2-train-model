@@ -78,29 +78,38 @@ class S3Checkpoint(callbacks.Callback):
                 match = True
             if match == False:
                 print('Uploading ' + filename + ' to Amazon S3 bucket ' + self.bucket)
-                # s3.Object(self.bucket, filename).put(Body=open(os.path.join(self.target_dir, filename), 'rb'))
+                s3.Object(self.bucket, filename).put(Body=open(os.path.join(self.target_dir, filename), 'rb'))
 
 input_shape = (img_height, img_width, 3)
 
 # Check AWS if a model already exists
+print("checking for existing models")
 bucket_files = []
 latest_val_acc = 0.0
 latest_file = ""
 my_bucket = s3.Bucket("model-" + card_set)
 for obj in my_bucket.objects.all():
-    print(obj)
     bucket_files.append(obj.key)
     split_files = obj.key.split('.hdf5')[0].split('-')
-    print(split_files[2])
     if float(split_files[2]) > latest_val_acc:
         latest_val_acc = float(split_files[2])
         latest_file = obj.key
 
 if latest_file != "":
-    print('has file')
-    # TODO download file from S3 bucket
-    model = load_model(latest_file)
+    try:
+        print("downloading existing model")
+        if not os.path.exists(card_set + '-model-aws-dl'):
+            os.makedirs(card_set + '-model-aws-dl')
+        my_bucket.download_file(latest_file, card_set + '-model-aws-dl/' + latest_file)
+    except ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            print("The object does not exist.")
+        else:
+            raise
+    print('loading existing model into memory')
+    model = load_model(card_set + '-model-aws-dl/' + latest_file)
 else:
+    print('creating new model')
     model = Sequential()
     model.add(Conv2D(nb_filters1, (conv1_size, conv1_size), padding='same', input_shape=input_shape))
     model.add(Activation("relu"))
@@ -124,8 +133,9 @@ else:
         optimizer=optimizers.RMSprop(lr=lr),
         metrics=['accuracy'])
 
-
-filepath=card_set + "/" + card_set + "-{epoch:02d}-{val_loss:.2f}-{val_acc:.2f}.hdf5"
+if not os.path.exists(card_set + '-model-created'):
+    os.makedirs(card_set + '-model-created')
+filepath=card_set + "-model-created/" + card_set + "-{epoch:03d}-{val_loss:.3f}-{val_acc:.3f}.hdf5"
 
 checkpoint = ModelCheckpoint(
     filepath,
