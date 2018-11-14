@@ -161,7 +161,7 @@ checkpoint = ModelCheckpoint(
     mode='max')
 s3_persist = S3Checkpoint(
     bucket='model-' + card_set,
-    target_dir=card_set)
+    target_dir=card_set + '-model-created')
 
 callbacks_list = [checkpoint, s3_persist]
 
