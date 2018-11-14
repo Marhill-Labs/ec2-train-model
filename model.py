@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import boto3
+
 from botocore.exceptions import ClientError
 from keras import optimizers
 from keras.models import Sequential
@@ -10,6 +11,8 @@ from keras import callbacks
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
+
+from keras.utils import multi_gpu_model
 
 from keras import backend as K
 K.tensorflow_backend._get_available_gpus()
@@ -108,6 +111,12 @@ if latest_file != "":
             raise
     print('loading existing model into memory')
     model = load_model(card_set + '-model-aws-dl/' + latest_file)
+    try:
+        parallel_model = multi_gpu_model(model, cpu_relocation=True)
+        print("Training using multiple GPUs..")
+    except ValueError:
+        parallel_model = model
+        print("Training using single GPU or CPU..")
 else:
     print('creating new model')
     model = Sequential()
@@ -129,7 +138,14 @@ else:
     model.add(Dropout(0.2))
     model.add(Dense(classes_num, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy',
+    try:
+        parallel_model = multi_gpu_model(model, cpu_relocation=True)
+        print("Training using multiple GPUs..")
+    except ValueError:
+        parallel_model = model
+        print("Training using single GPU or CPU..")
+
+    parallel_model.compile(loss='categorical_crossentropy',
         optimizer=optimizers.RMSprop(lr=lr),
         metrics=['accuracy'])
 
@@ -158,7 +174,7 @@ train_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(
 validation_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(img_height, img_width), shuffle=True, seed=13,
                                                      class_mode='categorical', batch_size=batch_size, subset="validation")
 
-model.fit_generator(
+parallel_model.fit_generator(
     train_generator,
     steps_per_epoch=(nb_train_samples // batch_size) * (1.0 - VALIDATION_SPLIT),
     epochs=epochs,
