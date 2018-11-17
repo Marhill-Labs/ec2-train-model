@@ -139,7 +139,7 @@ else:
     model.add(Dense(classes_num, activation='softmax'))
 
     try:
-        parallel_model = multi_gpu_model(model, cpu_relocation=True)
+        parallel_model = multi_gpu_model(model, gpus=8)
         print("Training using multiple GPUs..")
     except ValueError:
         parallel_model = model
