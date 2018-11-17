@@ -26,7 +26,7 @@ const AWS = require('aws-sdk');
 AWS.config.loadFromPath('./config.json');
 const ec2 = new AWS.EC2({apiVersion: '2016-11-15', region: 'us-west-2'});
 
-const INSTANCE_TYPE = 'p2.8xlarge';
+const INSTANCE_TYPE = 'p2.xlarge';
 const AMI = 'ami-0b63040ee445728bf';
 
 async function main() {
@@ -99,6 +99,14 @@ async function getRegular() {
 
   // AMIs are region-specific
   const instanceParams = {
+    BlockDeviceMappings: [
+      {
+        DeviceName: "/dev/sdh",
+        Ebs: {
+          VolumeSize: 100
+        }
+      }
+    ],
     ImageId: AMI,
     InstanceType: INSTANCE_TYPE,
     KeyName: 'key_acs',
@@ -213,6 +221,14 @@ function getSpotInstance(spot_price) {
     InstanceCount: 1,
     InstanceInterruptionBehavior: 'terminate',
     LaunchSpecification: {
+      BlockDeviceMappings: [
+        {
+          DeviceName: "/dev/sdh",
+          Ebs: {
+            VolumeSize: 100
+          }
+        }
+      ],
       ImageId: AMI,
       InstanceType: INSTANCE_TYPE,
       KeyName: 'key_acs'

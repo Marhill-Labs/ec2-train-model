@@ -111,12 +111,6 @@ if latest_file != "":
             raise
     print('loading existing model into memory')
     model = load_model(card_set + '-model-aws-dl/' + latest_file)
-    try:
-        parallel_model = multi_gpu_model(model)
-        print("Training using multiple GPUs..")
-    except ValueError:
-        parallel_model = model
-        print("Training using single GPU or CPU..")
 else:
     print('creating new model')
     model = Sequential()
@@ -138,14 +132,7 @@ else:
     model.add(Dropout(0.2))
     model.add(Dense(classes_num, activation='softmax'))
 
-    try:
-        parallel_model = multi_gpu_model(model)
-        print("Training using multiple GPUs..")
-    except ValueError:
-        parallel_model = model
-        print("Training using single GPU or CPU..")
-
-    parallel_model.compile(loss='categorical_crossentropy',
+    model.compile(loss='categorical_crossentropy',
         optimizer=optimizers.RMSprop(lr=lr),
         metrics=['accuracy'])
 
@@ -174,7 +161,7 @@ train_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(
 validation_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(img_height, img_width), shuffle=True, seed=13,
                                                      class_mode='categorical', batch_size=batch_size, subset="validation")
 
-parallel_model.fit_generator(
+model.fit_generator(
     train_generator,
     steps_per_epoch=(nb_train_samples // batch_size) * (1.0 - VALIDATION_SPLIT),
     epochs=epochs,
