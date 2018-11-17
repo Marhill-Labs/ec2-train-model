@@ -101,9 +101,9 @@ async function getRegular() {
   const instanceParams = {
     BlockDeviceMappings: [
       {
-        DeviceName: "/dev/sdh",
+        DeviceName: "/dev/sda1",  // /dev/xvda1
         Ebs: {
-          VolumeSize: 100
+          VolumeSize: 150
         }
       }
     ],
@@ -223,9 +223,11 @@ function getSpotInstance(spot_price) {
     LaunchSpecification: {
       BlockDeviceMappings: [
         {
-          DeviceName: "/dev/sdh",
+          DeviceName: "/dev/sda1",  // /dev/xvda1
           Ebs: {
-            VolumeSize: 100
+            VolumeSize: 150,
+            VolumeType: 'gp2',
+            DeleteOnTermination: true
           }
         }
       ],

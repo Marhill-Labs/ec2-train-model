@@ -94,8 +94,8 @@ my_bucket = s3.Bucket("model-" + card_set)
 for obj in my_bucket.objects.all():
     bucket_files.append(obj.key)
     split_files = obj.key.split('.hdf5')[0].split('-')
-    if float(split_files[2]) > latest_val_acc:
-        latest_val_acc = float(split_files[2])
+    if float(split_files[3]) > latest_val_acc:
+        latest_val_acc = float(split_files[3])
         latest_file = obj.key
 
 if latest_file != "":
@@ -121,13 +121,13 @@ else:
     model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
     model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
-
-    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-    model.add(Activation("relu"))
-    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+#
+#     model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+#     model.add(Activation("relu"))
+#     model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
 
     model.add(Flatten())
-    model.add(Dense(256))
+    model.add(Dense(classes_num * 2))
     model.add(Activation("relu"))
     model.add(Dropout(0.2))
     model.add(Dense(classes_num, activation='softmax'))
