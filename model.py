@@ -41,7 +41,7 @@ for root, dirs, files in os.walk(card_set + "_sorted"):
 img_width, img_height = 400, 400
 
 nb_train_samples = total
-batch_size = 64
+batch_size = 32
 
 epochs = 200
 nb_filters1 = 64
