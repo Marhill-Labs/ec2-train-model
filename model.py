@@ -41,7 +41,7 @@ for root, dirs, files in os.walk(card_set + "_sorted"):
 img_width, img_height = 400, 400
 
 nb_train_samples = total
-batch_size = 64
+batch_size = 256
 
 epochs = 200
 nb_filters1 = 64
@@ -112,7 +112,7 @@ if latest_file != "":
     print('loading existing model into memory')
     model = load_model(card_set + '-model-aws-dl/' + latest_file)
     try:
-        parallel_model = multi_gpu_model(model, cpu_relocation=True)
+        parallel_model = multi_gpu_model(model)
         print("Training using multiple GPUs..")
     except ValueError:
         parallel_model = model
@@ -139,7 +139,7 @@ else:
     model.add(Dense(classes_num, activation='softmax'))
 
     try:
-        parallel_model = multi_gpu_model(model, gpus=8)
+        parallel_model = multi_gpu_model(model)
         print("Training using multiple GPUs..")
     except ValueError:
         parallel_model = model
