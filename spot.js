@@ -10,6 +10,14 @@ if (!process.argv[2]) {
   process.exit();
 }
 
+let request_spot = true;
+
+// add an extra command to choose an on demand instance instead
+if (process.argv[3]) {
+  request_spot = false;
+  console.log('Spot mode disabled.  Using on-demand compute.');
+}
+
 const CARD_SET = process.argv[2];
 
 console.log(`Initialized with ${CARD_SET} CARD_SET.`);
@@ -18,28 +26,12 @@ const AWS = require('aws-sdk');
 AWS.config.loadFromPath('./config.json');
 const ec2 = new AWS.EC2({apiVersion: '2016-11-15', region: 'us-west-2'});
 
-const INSTANCE_TYPE = 'g3.8xlarge';
-
+const INSTANCE_TYPE = 'p2.8xlarge';
+const AMI = 'ami-0b63040ee445728bf';
 
 async function main() {
 
-  const spot_price = await getSpotPrice();
-  console.log(`Spot Price: ${spot_price}`);
-
-  console.log('Requesting Spot Instance');
-  const requested_spot_instance = await getSpotInstance(spot_price);
-  console.log('Spot Instance Requested.  Please wait...');
-
-  const request_id = requested_spot_instance.SpotInstanceRequests[0].SpotInstanceRequestId;
-
-  const spot_instance = await waitForSpotInstanceRequestFulfilled(request_id);
-  console.log('Spot Instance Request Fulfilled');
-
-  const instance_id = spot_instance.SpotInstanceRequests[0].InstanceId;
-  console.log(instance_id);
-  const availability_zone = spot_instance.SpotInstanceRequests[0].LaunchedAvailabilityZone;
-  console.log(availability_zone);
-
+  const [instance_id, availability_zone] = request_spot ? await getSpot() : await getRegular();
   console.log('Waiting for Instance to be ready.  Please be patient...');
 
   const params = {InstanceIds: [instance_id]};
@@ -79,6 +71,50 @@ async function main() {
 
 
 main();
+
+
+
+async function getSpot() {
+  const spot_price = await getSpotPrice();
+  console.log(`Spot Price: ${spot_price}`);
+
+  console.log('Requesting Spot Instance');
+  const requested_spot_instance = await getSpotInstance(spot_price);
+  console.log('Spot Instance Requested.  Please wait...');
+
+  const request_id = requested_spot_instance.SpotInstanceRequests[0].SpotInstanceRequestId;
+
+  const spot_instance = await waitForSpotInstanceRequestFulfilled(request_id);
+  console.log('Spot Instance Request Fulfilled');
+
+  const instance_id = spot_instance.SpotInstanceRequests[0].InstanceId;
+  console.log(instance_id);
+  const availability_zone = spot_instance.SpotInstanceRequests[0].LaunchedAvailabilityZone;
+  console.log(availability_zone);
+
+  return [instance_id, availability_zone];
+}
+
+async function getRegular() {
+
+  // AMIs are region-specific
+  const instanceParams = {
+    ImageId: AMI,
+    InstanceType: INSTANCE_TYPE,
+    KeyName: 'key_acs',
+    MinCount: 1,
+    MaxCount: 1
+  };
+
+  const instance_details = await ec2.runInstances(instanceParams).promise();
+  console.log(instance_details);
+
+  const instance_id = instance_details.Instances[0].InstanceId;
+  const availability_zone = instance_details.Instances[0].Placement.AvailabilityZone;
+  console.log(availability_zone);
+
+  return [instance_id, availability_zone];
+}
 
 async function confirmVolumeDeleted(volume_params) {
   return new Promise((resolve, reject) => {
@@ -177,7 +213,7 @@ function getSpotInstance(spot_price) {
     InstanceCount: 1,
     InstanceInterruptionBehavior: 'terminate',
     LaunchSpecification: {
-      ImageId: 'ami-0b63040ee445728bf', // reg ubuntu ami-0bbe6b35405ecebdb
+      ImageId: AMI,
       InstanceType: INSTANCE_TYPE,
       KeyName: 'key_acs'
     },

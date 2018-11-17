@@ -103,11 +103,11 @@ function start() {
     s3.listObjectsV2(opts, function(err, data){
       allKeys = allKeys.concat(data.Contents);
 
-      // if(data.IsTruncated)
-      //   listAllKeys(data.NextContinuationToken, cb);
-      // else{
+      if(data.IsTruncated)
+        listAllKeys(data.NextContinuationToken, cb);
+      else{
         cb(allKeys);
-      // }
+      }
     });
   }
 }
