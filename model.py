@@ -127,7 +127,7 @@ else:
 #     model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
 
     model.add(Flatten())
-    model.add(Dense(classes_num))
+    model.add(Dense(256))
     model.add(Activation("relu"))
     model.add(Dropout(0.2))
     model.add(Dense(classes_num, activation='softmax'))
