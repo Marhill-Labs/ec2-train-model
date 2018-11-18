@@ -41,7 +41,7 @@ for root, dirs, files in os.walk(card_set + "_sorted"):
 img_width, img_height = 400, 400
 
 nb_train_samples = total
-batch_size = 32
+batch_size = 64
 
 epochs = 200
 nb_filters1 = 64
@@ -121,13 +121,21 @@ else:
     model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
     model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
-#
-#     model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
-#     model.add(Activation("relu"))
-#     model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+
+    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+
+    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
+
+    model.add(Conv2D(nb_filters2, (conv2_size, conv2_size), padding='same'))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(pool_size, pool_size)))
 
     model.add(Flatten())
-    model.add(Dense(256))
+    model.add(Dense(64))
     model.add(Activation("relu"))
     model.add(Dropout(0.2))
     model.add(Dense(classes_num, activation='softmax'))
