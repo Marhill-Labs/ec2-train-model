@@ -160,6 +160,11 @@ train_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(
 
 validation_generator = data_generator.flow_from_directory(TRAINING_DIR, target_size=(img_height, img_width), shuffle=True, seed=13,
                                                      class_mode='categorical', batch_size=batch_size, subset="validation")
+label_map = (train_generator.class_indices)
+
+print(label_map)
+
+sys.exit()
 
 model.fit_generator(
     train_generator,
