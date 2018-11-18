@@ -87,15 +87,15 @@ input_shape = (img_height, img_width, 3)
 
 # Check AWS if a model already exists
 print("checking for existing models")
-bucket_files = []
-latest_val_acc = 0.0
+latest_val_err = 1000.0
 latest_file = ""
 my_bucket = s3.Bucket("model-" + card_set)
 for obj in my_bucket.objects.all():
-    bucket_files.append(obj.key)
+    if obj.key == '_labels.json':
+        continue
     split_files = obj.key.split('.hdf5')[0].split('-')
-    if float(split_files[3]) > latest_val_acc:
-        latest_val_acc = float(split_files[3])
+    if float(split_files[2]) < latest_val_err:
+        latest_val_err = float(split_files[2])
         latest_file = obj.key
 
 if latest_file != "":
@@ -162,9 +162,19 @@ validation_generator = data_generator.flow_from_directory(TRAINING_DIR, target_s
                                                      class_mode='categorical', batch_size=batch_size, subset="validation")
 label_map = (train_generator.class_indices)
 
-print(label_map)
+labels = {y:x for x,y in label_map.items()}
+print("Labels: ")
+print(labels)
 
-sys.exit()
+# save label_map to disk (for reference only)
+if not os.path.exists(card_set + '-labels'):
+    os.makedirs(card_set + '-labels')
+with open(card_set + '-labels' + '/_labels.json', 'w') as fp:
+    json.dump(labels, fp, sort_keys=True, indent=4)
+
+# save label map to s3
+s3.Object('model-' + card_set, '_labels.json').put(Body=open(os.path.join(card_set + '-labels', '_labels.json'), 'rb'))
+
 
 model.fit_generator(
     train_generator,
@@ -174,3 +184,6 @@ model.fit_generator(
     validation_data=validation_generator,
     validation_steps=(nb_train_samples // batch_size) * VALIDATION_SPLIT
 )
+
+
+sys.exit()
