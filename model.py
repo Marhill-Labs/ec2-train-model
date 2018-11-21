@@ -44,8 +44,8 @@ nb_train_samples = total
 batch_size = 32
 
 epochs = 200
-nb_filters1 = 64
-nb_filters2 = 64
+nb_filters1 = 128
+nb_filters2 = 128
 conv1_size = 3
 conv2_size = 3
 pool_size = 2
@@ -129,7 +129,7 @@ else:
     model.add(Flatten())
     model.add(Dense(256))
     model.add(Activation("relu"))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.4))
     model.add(Dense(classes_num, activation='softmax'))
 
     model.compile(loss='categorical_crossentropy',
